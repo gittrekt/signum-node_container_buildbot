@@ -36,7 +36,7 @@
     
       # Build dedicated server image
       build:
-        runs-on: ubuntu-20.04
+        runs-on: macos-latest
         needs: get_latest
         if: ${{ ((github.event_name == 'workflow_dispatch') || ((needs.get_latest.outputs.latest_short != needs.get_latest.outputs.local_version) && contains(join(needs.*.result, ','), 'success'))) }}
         strategy:
