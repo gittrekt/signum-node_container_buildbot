@@ -1,18 +1,45 @@
 # Number of layers don't matter in bulder
 # Currently only supports amd64,arm64/v8, ppc64le, s390x
-FROM alpine:3.17 as builder
+ARG NODE_VERSION=16.20.2
+ARG ALPINE_VERSION=3.18
+
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} as node
+FROM alpine:${ALPINE_VERSION} as builder
 
 # Setup the build environment
 RUN  apk update && apk upgrade \
-  && apk add --no-cache --update coreutils bind-tools git unzip wget curl bash musl musl-dev gcompat musl-utils openjdk11-jdk nodejs npm \
+  && apk add --no-cache --update --upgrade --virtual .build-deps-full \
+    binutils-gold \
+    g++ \
+    gcc \
+    libgcc \
+    linux-headers \
+    make \
+    coreutils \
+    bind-tools \
+    git \
+    unzip \
+    wget \
+    curl \
+    bash \
+    musl \
+    musl-dev \
+    gcompat \
+    musl-utils \
+    openjdk11-jdk \
+    libstdc++ \
   && rm -rf /var/cache/apk/*
+
+COPY --from=node /usr/lib /usr/lib
+COPY --from=node /usr/local/lib /usr/local/lib
+COPY --from=node /usr/local/include /usr/local/include
+COPY --from=node /usr/local/bin /usr/local/bin
+
+RUN node -v \
+  && npm -v
 
 COPY signum-node /signum-node
 WORKDIR /signum-node
-
-RUN node -v \
-  && npm -g install npm@latest \
-  && npm -v
 
 # Run gradle tasks
 RUN chmod +x /signum-node/gradlew \
