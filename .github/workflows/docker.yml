@@ -197,10 +197,12 @@
               DESTINATION_BRANCH: main
             run: |
               echo "## [signum-network/signum-node](https://github.com/'signum-network/signum-node'/) Containerized Dedicated Server  " > README.md
+              echo "Check the offical signum-network for information  " >> README.md
+              echo "" >> README.md
               echo "<details>" >> README.md
               echo "<summary>Signum-Node README</summary>" >> README.md
               echo "" >> README.md
-              echo "$(cat 'signum-node/README.md)" >> README.md
+              echo "$(cat signum-node/README.md)" >> README.md
               echo "</details>" >> README.md
               export MESSAGE="chore: Update README.md with release ${{ needs.get_latest.outputs.latest }}"
               export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
