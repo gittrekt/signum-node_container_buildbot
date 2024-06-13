@@ -9,12 +9,6 @@ FROM alpine:${ALPINE_VERSION} as builder
 # Setup the build environment
 RUN  apk update && apk upgrade \
   && apk add --no-cache --update --upgrade --virtual .build-deps-full \
-    binutils-gold \
-    g++ \
-    gcc \
-    libgcc \
-    linux-headers \
-    make \
     coreutils \
     bind-tools \
     git \
@@ -27,7 +21,6 @@ RUN  apk update && apk upgrade \
     gcompat \
     musl-utils \
     openjdk11-jdk \
-    libstdc++ \
   && rm -rf /var/cache/apk/*
 
 COPY --from=node /usr/lib /usr/lib
@@ -39,6 +32,7 @@ RUN node -v \
   && npm -v
 
 COPY signum-node /signum-node
+COPY build.gradle /signum-node/build.gradle
 WORKDIR /signum-node
 
 # Run gradle tasks
