@@ -1,10 +1,7 @@
 # Number of layers don't matter in bulder
 # Currently only supports amd64,arm64/v8, ppc64le, s390x
 ARG NODE_VERSION=16.20.2
-ARG ALPINE_VERSION=3.18
-
-FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} as node
-FROM alpine:${ALPINE_VERSION} as builder
+FROM node:${NODE_VERSION}-alpine as builder
 
 # Setup the build environment
 RUN  apk update && apk upgrade \
@@ -16,17 +13,9 @@ RUN  apk update && apk upgrade \
     wget \
     curl \
     bash \
-    musl \
-    musl-dev \
     gcompat \
-    musl-utils \
     openjdk11-jdk \
   && rm -rf /var/cache/apk/*
-
-COPY --from=node /usr/lib /usr/lib
-COPY --from=node /usr/local/lib /usr/local/lib
-COPY --from=node /usr/local/include /usr/local/include
-COPY --from=node /usr/local/bin /usr/local/bin
 
 RUN node -v \
   && npm -v

@@ -197,6 +197,8 @@
               DESTINATION_BRANCH: main
             run: |
               echo "## [signum-network/signum-node](https://github.com/'signum-network/signum-node'/) Containerized Dedicated Server  " > README.md
+              echo "[![Docker Image CI](https://github.com/gittrekt/signum-node_container_buildbot/actions/workflows/docker.yml/badge.svg?event=schedule)](https://github.com/gittrekt/signum-node_container_buildbot/actions/workflows/docker.yml)" >> README.md
+              echo "" >> README.md
               echo "Check the offical signum-network for information  " >> README.md
               echo "" >> README.md
               echo "<details>" >> README.md
