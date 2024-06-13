@@ -62,7 +62,7 @@
             id: meta
             uses: docker/metadata-action@v5
             with:
-              images: ${{ env.REGISTRY_IMAGE }}
+              images: ${{ vars.REGISTRY_IMAGE }}
     
           - name: Set up Qemu
             uses: docker/setup-qemu-action@v3
@@ -90,7 +90,7 @@
               cache-to: type=gha,mode=max
               provenance: mode=min
               sbom: true
-              outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+              outputs: type=image,name=${{ vars.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
     
           - name: Build and load
             id: build-load
@@ -149,7 +149,7 @@
             id: meta
             uses: docker/metadata-action@v5
             with:
-              images: ${{ env.REGISTRY_IMAGE }}
+              images: ${{ vars.REGISTRY_IMAGE }}
     
           - name: Login to Docker Hub
             uses: docker/login-action@v3
@@ -161,9 +161,9 @@
             working-directory: /tmp/digests
             run: |
               docker buildx imagetools create \
-                -t ${{ env.REGISTRY_IMAGE }}:latest \
-                -t ${{ env.REGISTRY_IMAGE }}:${{ needs.get_latest.outputs.latest }}  \
-                $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+                -t ${{ vars.REGISTRY_IMAGE }}:latest \
+                -t ${{ vars.REGISTRY_IMAGE }}:${{ needs.get_latest.outputs.latest }}  \
+                $(printf '${{ vars.REGISTRY_IMAGE }}@sha256:%s ' *)
     
       update_repo:        
         runs-on: ubuntu-latest
