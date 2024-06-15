@@ -1,10 +1,12 @@
 # Number of layers don't matter in bulder
 # Currently only supports amd64,arm64/v8, ppc64le, s390x
 ARG NODE_VERSION=16.20.2
-ARG ALPINE_VERSION=3.18
+FROM node:${NODE_VERSION}-alpine as builder
 
-FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} as node
-FROM alpine:${ALPINE_VERSION} as builder
+# Add the latest alpine repositories
+RUN echo "http://dl-3.alpinelinux.org/alpine/latest-stable/main" > /etc/apk/repositories \
+  && echo "http://dl-3.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories \
+  && apk update && apk upgrade --available --no-cache
 
 # Setup the build environment
 RUN  apk update && apk upgrade \
@@ -16,20 +18,9 @@ RUN  apk update && apk upgrade \
     wget \
     curl \
     bash \
-    musl \
-    musl-dev \
     gcompat \
-    musl-utils \
     openjdk11-jdk \
   && rm -rf /var/cache/apk/*
-
-COPY --from=node /usr/lib /usr/lib
-COPY --from=node /usr/local/lib /usr/local/lib
-COPY --from=node /usr/local/include /usr/local/include
-COPY --from=node /usr/local/bin /usr/local/bin
-
-RUN node -v \
-  && npm -v
 
 COPY signum-node /signum-node
 COPY build.gradle /signum-node/build.gradle
@@ -37,7 +28,9 @@ WORKDIR /signum-node
 
 # Run gradle tasks
 RUN chmod +x /signum-node/gradlew \
-  && /signum-node/gradlew clean dist jdeps \ 
+  && /signum-node/gradlew clean 
+
+RUN /signum-node/gradlew dist jdeps \ 
     -Pjdeps.recursive=true \
     -Pjdeps.ignore.missing.deps=true \
     -Pjdeps.print.module.deps=true
@@ -59,29 +52,35 @@ RUN rm -rf /signum/signum-node.exe 2> /dev/null || true \
   && rm -rf /signum/signum-node.zip 2> /dev/null || true \
   && rm -rf /signum/*.sh 2> /dev/null || true
 
-# Create a custom JRE
-#RUN $JAVA_HOME/bin/jlink \ removed until alpine is fixed
-RUN jlink \
+RUN mkdir -p /requirements/sbin \
+  && mkdir -p /requirements/etc \
+  && mkdir -p /signum/db
+
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
+
+# Create a custom JRE 
+RUN ${JAVA_HOME}/bin/jlink \
+  --module-path ${JAVA_HOME}/jmods:/signum/signum-node.jar \
   --add-modules $(cat /signum-node/build/reports/jdeps/print-module-deps-main.txt) \
   --strip-debug \
   --no-man-pages \
   --no-header-files \
   --compress=2 \
-  --output /jre
+  --output /requirements/jre
 
-RUN mkdir -p /requirements \
-  && ldd /jre/bin/java | awk 'NF == 4 { system("cp --parents " $3 " /requirements") }'
+RUN ldd /requirements/jre/bin/java | awk 'NF == 4 { system("cp --parents " $3 " /requirements") }'
+
+RUN cp /sbin/nologin /requirements/sbin/nologin \
+  && echo "signum:x:989:989:Signum-Node User:/conf:/sbin/nologin" > /requirements/etc/passwd
 
 # final image
 FROM scratch
 LABEL maintainer="GittRekt"
-ENV JAVA_HOME=/jre
-ENV PATH="/jre/bin:${PATH}"
 
-COPY --from=builder /jre /jre
-COPY --from=builder /signum /
-COPY --from=builder /requirements/ /
+COPY --from=builder /requirements /
+COPY --from=builder --chown=989:989 /signum /
 
 VOLUME ["/conf", "/db"]
 EXPOSE 8125/tcp 8123/tcp
+USER 989:989
 ENTRYPOINT [ "/jre/bin/java", "-XX:MaxRAMPercentage=90.0", "-jar", "/signum-node.jar", "--headless", "-c", "/conf/" ]

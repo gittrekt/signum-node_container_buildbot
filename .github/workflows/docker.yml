@@ -6,9 +6,6 @@
         - cron: '0 0 * * *'
       workflow_dispatch:
     
-    env:
-      REGISTRY_IMAGE: gittrekt/signum-node
-    
     jobs:
       # Get versions
       get_latest:
@@ -65,7 +62,7 @@
             id: meta
             uses: docker/metadata-action@v5
             with:
-              images: ${{ env.REGISTRY_IMAGE }}
+              images: ${{ vars.REGISTRY_IMAGE }}
     
           - name: Set up Qemu
             uses: docker/setup-qemu-action@v3
@@ -93,7 +90,7 @@
               cache-to: type=gha,mode=max
               provenance: mode=min
               sbom: true
-              outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+              outputs: type=image,name=${{ vars.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
     
           - name: Build and load
             id: build-load
@@ -152,7 +149,7 @@
             id: meta
             uses: docker/metadata-action@v5
             with:
-              images: ${{ env.REGISTRY_IMAGE }}
+              images: ${{ vars.REGISTRY_IMAGE }}
     
           - name: Login to Docker Hub
             uses: docker/login-action@v3
@@ -164,9 +161,9 @@
             working-directory: /tmp/digests
             run: |
               docker buildx imagetools create \
-                -t ${{ env.REGISTRY_IMAGE }}:latest \
-                -t ${{ env.REGISTRY_IMAGE }}:${{ needs.get_latest.outputs.latest }}  \
-                $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+                -t ${{ vars.REGISTRY_IMAGE }}:latest \
+                -t ${{ vars.REGISTRY_IMAGE }}:${{ needs.get_latest.outputs.latest }}  \
+                $(printf '${{ vars.REGISTRY_IMAGE }}@sha256:%s ' *)
     
       update_repo:        
         runs-on: ubuntu-latest
@@ -190,13 +187,26 @@
               pattern: ${{ needs.get_latest.outputs.latest }}-*
               merge-multiple: true
 
+          - uses: ncipollo/release-action@v1
+            with:
+              allowUpdates: true
+              artifactErrorsFailBuild: true
+              artifacts: "/tmp/gzs/*.tar.gz"
+              body: "See the [Release](https://github.com/signum-network/signum-node/releases/tag/${{ needs.get_latest.outputs.latest }}) for the changes in this release."
+              discussionCategory: "~Releases"
+              makeLatest: true
+              removeArtifacts: true
+              tag: ${{ needs.get_latest.outputs.latest }}
+
           - name: Update and push
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               FILE_TO_COMMIT: README.md
               DESTINATION_BRANCH: main
             run: |
-              echo "## [signum-network/signum-node](https://github.com/'signum-network/signum-node'/) Containerized Dedicated Server  " > README.md
+              echo "## [signum-network/signum-node](https://github.com/signum-network/signum-node/) Containerized Dedicated Server  " > README.md
+              echo "[![Docker Image CI](https://github.com/gittrekt/signum-node_container_buildbot/actions/workflows/docker.yml/badge.svg?event=schedule)](https://github.com/gittrekt/signum-node_container_buildbot/actions/workflows/docker.yml)" >> README.md
+              echo "" >> README.md
               echo "Check the offical signum-network for information  " >> README.md
               echo "" >> README.md
               echo "<details>" >> README.md
