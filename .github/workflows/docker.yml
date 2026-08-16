@@ -198,7 +198,6 @@ jobs:
           artifactErrorsFailBuild: true
           artifacts: "/tmp/gzs/*.tar.gz"
           body: "See the [Release](https://github.com/signum-network/signum-node/releases/tag/${{ needs.get_latest.outputs.latest }}) for the changes in this release."
-          discussionCategory: "~Releases"
           makeLatest: true
           removeArtifacts: true
           tag: ${{ needs.get_latest.outputs.latest }}
