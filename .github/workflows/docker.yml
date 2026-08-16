@@ -81,6 +81,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
+      # Single build only — push by digest, cache scoped per platform
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -90,31 +91,30 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           pull: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_PAIR }}
           provenance: mode=min
           sbom: true
           outputs: type=image,name=${{ vars.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Build and load (for release tar.gz)
-        id: build-load
-        uses: docker/build-push-action@v6
-        with:
-          file: Dockerfile
-          context: .
-          platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          pull: true
-          cache-from: type=gha
-          load: true
-          tags: ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}
-
+      # No second build: pull the digest we just pushed and save as tar.gz
       - name: Export digest and release artifact
         run: |
+          set -euo pipefail
           mkdir -p /tmp/digests /tmp/gzs
+
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
-          docker save ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }} | gzip > /tmp/gzs/${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}.tar.gz
+
+          local_tag="${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}"
+
+          # Pull the exact image we just pushed (already authenticated)
+          docker pull "${{ vars.REGISTRY_IMAGE }}@${digest}"
+          docker tag "${{ vars.REGISTRY_IMAGE }}@${digest}" "${local_tag}"
+          docker save "${local_tag}" | gzip > "/tmp/gzs/${local_tag}.tar.gz"
+
+          echo "Created /tmp/gzs/${local_tag}.tar.gz"
+          ls -lh /tmp/gzs/
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
