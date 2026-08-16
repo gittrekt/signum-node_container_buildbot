@@ -51,6 +51,7 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "PLATFORM=${platform}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,8 +109,9 @@ jobs:
 
           local_tag="${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}"
 
-          # Pull the exact image we just pushed (already authenticated)
-          docker pull "${{ vars.REGISTRY_IMAGE }}@${digest}"
+          # Must specify --platform: arm64 jobs run on amd64 runners;
+          # without it docker defaults to linux/amd64 and fails.
+          docker pull --platform "${PLATFORM}" "${{ vars.REGISTRY_IMAGE }}@${digest}"
           docker tag "${{ vars.REGISTRY_IMAGE }}@${digest}" "${local_tag}"
           docker save "${local_tag}" | gzip > "/tmp/gzs/${local_tag}.tar.gz"
 
