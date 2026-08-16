@@ -188,7 +188,7 @@ tasks.register('dist', Zip) {
   into('html') { from "html" }
   from "LICENSE.txt"
   from "README.md"
-  archiveName "${baseNodeFileName}.zip"
+  archiveFileName = "${baseNodeFileName}.zip"
 }
 
 def jdkVersion = 'zulu11.56.19-ca-jre11.0.15'
@@ -222,7 +222,7 @@ tasks.register('windowsZip', Zip) {
   into('jre') {
     from "build/distributions/${jdkVersion}-win_x64/"
   }
-  archiveName "${baseNodeFileName}-win_x64.zip"
+  archiveFileName = "${baseNodeFileName}-win_x64.zip"
 }
 
 import org.gradle.crypto.checksum.Checksum
@@ -295,7 +295,7 @@ jooq {
             forcedTypes {
               forcedType {
                 name = 'BOOLEAN'
-                expression = '.*\\.(.*\\.LATEST|MINTABLE|AT_STATE\\.FREEZE_WHEN_SAME_BALANCE|GOODS\\.DELISTED|TRANSACTION\\.(HAS_MESSAGE|HAS_ENCRYPTED_MESSAGE|HAS_PUBLIC_KEY_ANNOUNCEMENT|HAS_ENCRYPTTOSELF_MESSAGE)|PURCHASE\\.(PENDING|HAS_FEEDBACK_NOTES|HAS_PUBLIC_FEEDBACKS))'
+                expression = '.*\\.(.*\\.LATEST|MINTABLE|AT_STATE\\.FREEZE_WHEN_SAME_BALANCE|GOODS\\.DELISTED|TRANSACTION\\.(HAS_MESSAGE|HAS_ENCRYPTED_MESSAGE|HAS_PUBLIC_KEY_ANNOUNCEMENT|HAS_ENCR[...]
                 types = '.*'
               }
             }
@@ -311,5 +311,4 @@ jooq {
 }
 
 generateJooq.dependsOn(flywayMigrate)
-
 
