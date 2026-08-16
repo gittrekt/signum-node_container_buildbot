@@ -9,7 +9,7 @@ Check the offical signum-network for information
 # Signum Node
 [![Node Build](https://github.com/signum-network/signum-node/actions/workflows/build.yml/badge.svg)](https://github.com/signum-network/signum-node/actions/workflows/build.yml)
 [![GPLv3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE.txt)
-[![Get Support at https://discord.gg/ms6eagX](https://img.shields.io/badge/join-discord-blue.svg)](https://discord.gg/ms6eagX)
+[![Get Support at(https://discord.gg/9rH2bbCNpe](https://img.shields.io/badge/join-discord-blue.svg)](https://discord.gg/9rH2bbCNpe)
 
 The world's first HDD-mined cryptocurrency using an energy efficient
 and fair Proof-of-Commitment (PoC+) consensus algorithm running since August 2014.
@@ -54,64 +54,64 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### Windows
 
-Any recent 64 bit Windows should suffice (a Java 11 is embedded in the windows package).
+Any recent 64-bit Windows should suffice. To install Java 21, follow these steps:
+- Download the latest JDK 21 installer for Windows from the [official Oracle JDK website](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html).
+- Run the installer and follow the setup instructions.
+- Add the JDK `bin` directory (e.g., `C:\Program Files\Java\jdk-21\bin`) to your system's PATH environment variable if it's not added automatically.
 
-### Linux and Mac, Java 64-bit 11 (Recommended) or higher
+### Linux and Mac, Java 64-bit 21
 
-You need Java 64-bit 11 (recommended) or higher installed.
-Install the `openjdk-11-jre` package or similar for your distribution.
-To check your java version, run `java -version`. You should get an output similar to the following:
+You need Java 64-bit 21 installed.
+For Linux: Install the `openjdk-21-jre` or `openjdk-21-jdk` package depending on your distribution:
+- On Debian/Ubuntu: `sudo apt install openjdk-21-jdk`
+- On Fedora: `sudo dnf install java-21-openjdk`
+- On Arch Linux: `sudo pacman -S jdk-openjdk`
+For macOS: Install Java 21 using [Homebrew](https://brew.sh/):
+- Run `brew install openjdk@21`
+- Add the JDK to your shell profile if not done automatically, e.g., `export PATH="/usr/local/opt/openjdk@21/bin:$PATH"` for Bash/Zsh
+To check your Java version, run `java -version`. You should get an output similar to the following:
 
 ```text
-openjdk version "11.0.13" 2021-10-19
-OpenJDK Runtime Environment (build 11.0.13+8-Ubuntu-0ubuntu1.20.04)
-OpenJDK 64-Bit Server VM (build 11.0.13+8-Ubuntu-0ubuntu1.20.04, mixed mode, sharing)
+openjdk version "21.0.1" 2023-09-19
+OpenJDK Runtime Environment (build 21.0.1+12-arch)
+OpenJDK 64-Bit Server VM (build 21.0.1+12-arch, mixed mode, sharing)
 ```
 
-The important part is that the Java version starts with `11.` (Java 11)
+The important part is that the Java version starts with `21.` (Java 21)
 
-> Tipp: Use [SDK!](https://sdkman.io/usage) for easy installation of Java
+> Tipp: Use [SDKMAN!](https://sdkman.io/usage) for easy installation of Java 21
 
 
 ## Using an optional RDBMS (MariaDB, PostgreSQL)
 
-Signum Node uses an embedded file based database (H2) as default. But it's possible to use either MariaDB or PostgreSQL as alternative database.
+Signum Node uses an embedded file based database (SQLite) as default. But it's possible to use either MariaDB or PostgreSQL as alternative database.
 
 The minimum required version of MariaDB is 10.6.
 
 ----
 
-### Should I use MariaDB, PostgreSQL or H2?
+### Should I use MariaDB, PostgreSQL or Sqlite?
 
-__H2__ is a very fast file based (embedded) database. Signum Node builds up the entire database out of the box and does not require any further set up. 
-This makes H2 an interesting choice especially for less-technical users who just want to start and/or run a local (not publicly accessible) node. Choose this, if you want to run just a local node without public exposure and/or 
-you don't want to connect to the database while running the node. Furthermore, the resulting database file is easily shareable, such others can use a snapshot and sync from there.
-> Update: H2 has proven to be unstable. We do not recommend the usage of H2 anymore
 
-__Sqlite__ is just like H2 a file based (embedded) database. Signum Node builds up the entire database out of the box and does not require any further set up.
-This makes Sqlite an interesting choice especially for less-technical users who just want to start and/or run a local (not publicly accessible) node. Choose this, if you want to run just a local node without public exposure. 
+__Sqlite__ is a file based (embedded) database. Signum Node builds up the entire database out of the box and does not require any further set up.
+This makes Sqlite an interesting choice especially for less-technical users who just want to start and/or run a local (not publicly accessible) node. Choose this, if you want to run just a local node without public exposure.
 Furthermore, the resulting database file is easily shareable, such others can use a snapshot and sync from there.
-Sqlite is still experimental, and considered as a substitute for H2.
 
 __MariaDB__ and __PostgreSQL__ on the other hand require an additional set-up. It is the better choice for publicly accessible nodes, 
 as they are considered more stable, especially under higher load. 
 
-MariaDB and PostgreSQL are not as fast as H2, so expect higher re-synchronisation times.
+MariaDB and PostgreSQL are typically slower than file-based databases, so expect higher re-synchronisation times.
 The performance hit for MariaDB and PostgreSQL is related to the TCP/IP connection, which is per se slower than File-IO (especially for SSDs).
-Due to that model concurrent access is possible, i.e. one can run an additional service against the same database, which is not possible with H2, as the file gets locked.
+Due to that model concurrent access is possible, i.e. one can run an additional service against the same database, which is generally not possible with file-based databases as the file gets locked.
 
-|            | Stability | Speed | Setup | Backup | Concurrency | Purpose                          |
-|------------|-----------|------|-------|--------|-------------|----------------------------------|
-| H2         | - (1)     | ⭐⭐⭐   | ⭐⭐⭐    | ⭐⭐⭐       | ❌           | Local Node                       |  
-| Sqlite     | ⭐⭐ (2)    | ⭐⭐   | ⭐⭐⭐    | ⭐⭐⭐       | ✅ (3)       | Local Node                       |  
-| MariaDB    | ⭐⭐        | ⭐    | ⭐     | ⭐       | ✅           | Public Node, Additional Services |  
-| PostgreSQL | ⭐⭐ (2)    | ⭐    | ⭐     | ⭐       | ✅           | Public Node, Additional Services |  
+|            | Min. Version| Stability | Speed | Setup   | Backup | Concurrency | Purpose                          |
+|------------ |------------|----------|--------|---------|--------|-------------|----------------------------------|
+| SQLite      |    3.45.2        | ⭐⭐    | ⭐⭐* | ⭐⭐⭐| ⭐⭐⭐| ✅ (1)       | Local Node                       |  
+| MariaDB     |    10.11       | ⭐⭐    | ⭐     | ⭐     | ⭐     | ✅           | Public Node, Additional Services |  
+| PostgreSQL  |    16.9       | ⭐⭐    | ⭐     | ⭐     | ⭐     | ✅           | Public Node, Additional Services |  
 
-> (1) H2 - even with updated Version 2 - has proven to be unstable and causing database issues - mostly File I/O exceptions, and data inconsistencies. 
 
-> (2) PostgreSQL and Sqlite support is still experimental. So, stability needs to be proven over time, but in general Postgres itself is as least stable/reliable as MariaDB.
-
-> (3) Sqlite supports concurrent reading. Writing is still limited to one writer at a time.
+> (1) Sqlite supports concurrent reading. Writing is still limited to one writer at a time.
 ---- 
 
 See in the following documents how to set up for different database
@@ -154,9 +154,9 @@ Note: the example ID above `8952122635653861124` is the [SNA](https://www.sna.si
 
 The cash-back is paid from block `1,029,000.`
 
-**H2/MariaDB**
+**SQLite/MariaDB**
 
-By default Signum Node is using H2 (file based) as database. 
+By default Signum Node is using SQLite (file based) as database. 
 If you like to use MariaDB you will need to adjust your `conf/node.properties`:
 
 ```properties
@@ -220,7 +220,7 @@ In order to run a testnet node adjust your `conf/node.properties` to:
 node.network = signum.net.TestnetNetwork
 ```
 
-If no custom DB is set, a H2 file will be created as `db/signum-testnet.mv.db`.
+If no custom DB is set, a SQLite file will be created as `db/signum-testnet.sqlite.db`.
 For a MariaDB setup you need to configure a testnet instance in the config file.
 
 ### Private Chains
@@ -277,14 +277,40 @@ Clone the repository as instructed above and run:
 ./gradlew test
 ```
 
-## Updating the Phoenix Wallet
+## Updating the Phoenix Wallet and Classic Wallet
 
-Since V3.0 the Phoenix Wallet is available as built-in alternative to the classic wallet. 
-Within a release of the node software automatically the latest available release of the Phoenix wallet will be applied.
-As the Phoenix Wallet is a project apart from this repository the node and wallet software have different
-release cycles. Therefore, an additional update script (at this moment only for Linux/MacOS) is provided.
+> Each Node Distribution has the latest wallet versions (at time of distribution) included automatically. Usually, no further action is required. 
 
-Just run `./update-phoenix.sh`, which is available in the distribution package 
+The Phoenix Wallet and Classic Wallet are maintained in separate repositories and must be installed before usage. 
+This approach ensures that both wallets can be updated independently without requiring a full deployment of the node.
+Scripts for installing and updating both wallets are available in the distribution package. 
+Users can execute them as needed to ensure they are using the latest versions.
+
+
+## First-Time Wallet Installation
+
+> This is only for users building the node software locally and not using the binary distribution packages
+
+During the first run of the node, both the Classic Wallet and Phoenix Wallet must be installed manually using their respective scripts. 
+ 
+To install the Phoenix Wallet:
+Run `./update-phoenix.sh` (available in the distribution package).
+
+To update or install the Classic Wallet:
+Run `./update-classic.sh` (available in the distribution package).
+
+**Note for Windows users:**
+As the installation scripts are designed for BSD/GNU Linux environments and are not natively supported on Windows, Windows users should use Windows Subsystem for Linux (WSL) to execute these commands.
+
+Steps to install WSL:
+- Open PowerShell as Administrator and run: `wsl --install`
+- Follow the instructions to set up a Linux distribution on your system.
+
+Once WSL is set up, access the distribution and navigate to the folder containing the scripts. Then run:
+```bash
+./update-phoenix.sh
+./update-classic.sh
+```
 
 # Releasing
 
