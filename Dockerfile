@@ -25,40 +25,19 @@ RUN echo "http://dl-3.alpinelinux.org/alpine/latest-stable/main" > /etc/apk/repo
 ENV JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
 
 # ---------------------------------------------------------------------------
-# Layer 2: Gradle wrapper + build definition only
-# These files change less often than source → better cache hit rate
-# ---------------------------------------------------------------------------
-WORKDIR /signum-node
-
-COPY signum-node/gradlew \
-     signum-node/gradlew.bat \
-     signum-node/build.gradle \
-     signum-node/settings.gradle \
-     signum-node/gradle.properties \
-     ./
-
-COPY signum-node/gradle ./gradle
-
-# Disable Node.js download (we already have Node in the base image)
-RUN sed -i 's/download = true/download = false/g' build.gradle \
-  && chmod +x gradlew
-
-# Warm Gradle dependency cache (does not compile source yet)
-# This layer is reused as long as build.gradle / settings.gradle stay the same
-RUN ./gradlew dependencies --no-daemon || true
-
-# ---------------------------------------------------------------------------
-# Layer 3: Full source (changes frequently)
+# Layer 2: Full source + build
 # ---------------------------------------------------------------------------
 COPY signum-node /signum-node
+WORKDIR /signum-node
 
-# Re-apply sed in case the full COPY overwrote build.gradle
-RUN sed -i 's/download = true/download = false/g' build.gradle
+# Disable Node.js download — we already have Node in the base image
+RUN sed -i 's/download = true/download = false/g' build.gradle \
+  && chmod +x gradlew
 
 # Fail early if Node/npm are missing
 RUN node -v && npm -v
 
-# Full build
+# Build
 RUN ./gradlew clean dist jdeps \
     --no-daemon \
     -Pjdeps.recursive=true \
@@ -66,7 +45,7 @@ RUN ./gradlew clean dist jdeps \
     -Pjdeps.print.module.deps=true
 
 # ---------------------------------------------------------------------------
-# Layer 4: Unpack + wallets + jlink (depends on build output)
+# Layer 3: Unpack + wallets + jlink
 # ---------------------------------------------------------------------------
 RUN unzip -o build/distributions/signum-node.zip -d /signum \
   && cp update-phoenix.sh /signum/update-phoenix.sh \
