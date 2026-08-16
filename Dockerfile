@@ -3,14 +3,13 @@
 ARG NODE_VERSION=20
 FROM node:${NODE_VERSION}-alpine AS builder
 
-# Add the latest alpine repositories
+# ---------------------------------------------------------------------------
+# Layer 1: System packages + Java (changes very rarely)
+# ---------------------------------------------------------------------------
 RUN echo "http://dl-3.alpinelinux.org/alpine/latest-stable/main" > /etc/apk/repositories \
   && echo "http://dl-3.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories \
-  && apk update && apk upgrade --available --no-cache
-
-# Setup the build environment (Java 21)
-RUN apk update && apk upgrade \
-  && apk add --no-cache --update --upgrade --virtual .build-deps-full \
+  && apk update && apk upgrade --available --no-cache \
+  && apk add --no-cache --update --upgrade \
     coreutils \
     bind-tools \
     git \
@@ -25,24 +24,50 @@ RUN apk update && apk upgrade \
 
 ENV JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
 
-COPY signum-node /signum-node
+# ---------------------------------------------------------------------------
+# Layer 2: Gradle wrapper + build definition only
+# These files change less often than source → better cache hit rate
+# ---------------------------------------------------------------------------
 WORKDIR /signum-node
+
+COPY signum-node/gradlew \
+     signum-node/gradlew.bat \
+     signum-node/build.gradle \
+     signum-node/settings.gradle \
+     signum-node/gradle.properties \
+     ./
+
+COPY signum-node/gradle ./gradle
+
+# Disable Node.js download (we already have Node in the base image)
+RUN sed -i 's/download = true/download = false/g' build.gradle \
+  && chmod +x gradlew
+
+# Warm Gradle dependency cache (does not compile source yet)
+# This layer is reused as long as build.gradle / settings.gradle stay the same
+RUN ./gradlew dependencies --no-daemon || true
+
+# ---------------------------------------------------------------------------
+# Layer 3: Full source (changes frequently)
+# ---------------------------------------------------------------------------
+COPY signum-node /signum-node
+
+# Re-apply sed in case the full COPY overwrote build.gradle
+RUN sed -i 's/download = true/download = false/g' build.gradle
 
 # Fail early if Node/npm are missing
 RUN node -v && npm -v
 
-# Disable Node.js download — we already have Node in the base image
-RUN sed -i 's/download = true/download = false/g' build.gradle
-
-# Build
-RUN chmod +x gradlew \
-  && ./gradlew clean dist jdeps \
+# Full build
+RUN ./gradlew clean dist jdeps \
     --no-daemon \
     -Pjdeps.recursive=true \
     -Pjdeps.ignore.missing.deps=true \
     -Pjdeps.print.module.deps=true
 
-# Unpack the build
+# ---------------------------------------------------------------------------
+# Layer 4: Unpack + wallets + jlink (depends on build output)
+# ---------------------------------------------------------------------------
 RUN unzip -o build/distributions/signum-node.zip -d /signum \
   && cp update-phoenix.sh /signum/update-phoenix.sh \
   && chmod +x /signum/update-phoenix.sh
@@ -51,8 +76,9 @@ WORKDIR /signum
 
 # Get phoenix and classic wallets
 RUN bash -c /signum/update-phoenix.sh \
-  && (cd /tmp && git clone https://github.com/signum-network/signum-classic-wallet.git \
-    && cp -r signum-classic-wallet/src/* /signum/html/ui/classic/ && rm -rf signum-classic-wallet)
+  && (cd /tmp && git clone --depth 1 https://github.com/signum-network/signum-classic-wallet.git \
+    && cp -r signum-classic-wallet/src/* /signum/html/ui/classic/ \
+    && rm -rf signum-classic-wallet)
 
 # Clean up
 RUN rm -rf /signum/signum-node.exe 2>/dev/null || true \
@@ -78,7 +104,9 @@ RUN ldd /requirements/jre/bin/java | awk 'NF == 4 { system("cp --parents " $3 " 
 RUN cp /sbin/nologin /requirements/sbin/nologin \
   && echo "signum:x:989:989:Signum-Node User:/conf:/sbin/nologin" > /requirements/etc/passwd
 
-# final image
+# ---------------------------------------------------------------------------
+# Final image (scratch)
+# ---------------------------------------------------------------------------
 FROM scratch
 LABEL maintainer="GittRekt"
 
