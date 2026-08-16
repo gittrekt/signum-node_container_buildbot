@@ -96,15 +96,24 @@ jobs:
           sbom: true
           outputs: type=image,name=${{ vars.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Export digest and create release artifact
+      - name: Build and load (for release tar.gz)
+        id: build-load
+        uses: docker/build-push-action@v6
+        with:
+          file: Dockerfile
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          pull: true
+          cache-from: type=gha
+          load: true
+          tags: ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}
+
+      - name: Export digest and release artifact
         run: |
           mkdir -p /tmp/digests /tmp/gzs
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
-
-          # Create a local image from the digest we just pushed so we can save a tar.gz
-          docker buildx imagetools create --tag ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }} ${{ vars.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
-          docker pull ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}
           docker save ${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }} | gzip > /tmp/gzs/${{ needs.get_latest.outputs.latest }}-${{ env.PLATFORM_PAIR }}.tar.gz
 
       - name: Upload digest
